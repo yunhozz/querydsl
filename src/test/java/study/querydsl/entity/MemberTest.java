@@ -25,9 +25,9 @@ class MemberTest {
         em.persist(teamB);
 
         Member member1 = new Member(teamA, "member1", 10);
-        Member member2 = new Member(teamA, "member2", 10);
-        Member member3 = new Member(teamB, "member3", 10);
-        Member member4 = new Member(teamB, "member4", 10);
+        Member member2 = new Member(teamA, "member2", 20);
+        Member member3 = new Member(teamB, "member3", 30);
+        Member member4 = new Member(teamB, "member4", 40);
         em.persist(member1);
         em.persist(member2);
         em.persist(member3);
