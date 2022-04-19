@@ -216,7 +216,7 @@ public class QuerydslBasicTest {
      */
     @Test
     void group() {
-        List<Tuple> result = queryFactory
+        List<Tuple> results = queryFactory
                 .select(team.name,
                         member.age.avg())
                 .from(member)
@@ -224,8 +224,8 @@ public class QuerydslBasicTest {
                 .groupBy(team.name)
                 .fetch();
 
-        Tuple teamA = result.get(0);
-        Tuple teamB = result.get(1);
+        Tuple teamA = results.get(0);
+        Tuple teamB = results.get(1);
 
         assertThat(teamA.get(team.name)).isEqualTo("teamA");
         assertThat(teamA.get(member.age.avg())).isEqualTo(15); // (10 + 20) / 2
