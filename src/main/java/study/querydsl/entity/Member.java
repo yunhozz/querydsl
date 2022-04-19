@@ -31,7 +31,10 @@ public class Member {
     }
 
     public Member(Team team, String username, int age) {
-        setTeam(team);
+        if (team != null) {
+            setTeam(team);
+        }
+
         this.username = username;
         this.age = age;
     }
