@@ -648,7 +648,7 @@ public class QuerydslBasicTest {
     }
 
     /*
-    BooleanBuilder 를 이용한 동적 쿼리 생성
+    BooleanBuilder 를 이용한 동적 쿼리 생성 -> 가독성이 상대적으로 떨어짐
      */
     @Test
     void dynamicQuery_BooleanBuilder() {
