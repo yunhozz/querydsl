@@ -602,15 +602,26 @@ public class QuerydslBasicTest {
      */
     @Test
     void findDtoByConstructor() {
-        List<MemberDto> result = queryFactory
+        List<MemberDto> result1 = queryFactory
                 .select(Projections.constructor(MemberDto.class,
                         member.username,
                         member.age))
                 .from(member)
                 .fetch();
 
-        for (MemberDto memberDto : result) {
+        List<UserDto> result2 = queryFactory
+                .select(Projections.constructor(UserDto.class,
+                        member.username,
+                        member.age))
+                .from(member)
+                .fetch();
+
+        for (MemberDto memberDto : result1) {
             System.out.println("memberDto = " + memberDto);
+        }
+
+        for (UserDto userDto : result2) {
+            System.out.println("userDto = " + userDto);
         }
     }
 
