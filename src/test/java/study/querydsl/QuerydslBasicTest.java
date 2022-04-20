@@ -4,12 +4,12 @@ import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
@@ -70,7 +70,7 @@ public class QuerydslBasicTest {
         //QMember m = QMember.member; -> "member1"
 
         //member1 을 찾아라 -> 자동으로 파라미터 바인딩 처리, 컴파일 오류 발생
-        //QMember.member -> static import
+        //QMember.member -> static import -> member
         Member findMember = queryFactory
                 .select(member)
                 .from(member)
@@ -102,6 +102,7 @@ public class QuerydslBasicTest {
 
     @Test
     void search() {
+        //select m from Member m where m.username = 'member1' and m.age = 10
         Member findMember = queryFactory
                 .selectFrom(member)
                 .where(member.username.eq("member1")
@@ -181,7 +182,7 @@ public class QuerydslBasicTest {
     }
 
     @Test
-    void paging1() {
+    void paging() {
         //페이징 쿼리 작성
         List<Member> result = queryFactory
                 .selectFrom(member)
@@ -224,16 +225,16 @@ public class QuerydslBasicTest {
      */
     @Test
     void group() {
-        List<Tuple> results = queryFactory
+        List<Tuple> result = queryFactory
                 .select(team.name,
                         member.age.avg())
                 .from(member)
                 .join(member.team, team)
-                .groupBy(team.name)
+                .groupBy(team.name) //col_0 : team.name, col_1 : member.age.avg
                 .fetch();
 
-        Tuple teamA = results.get(0);
-        Tuple teamB = results.get(1);
+        Tuple teamA = result.get(0);
+        Tuple teamB = result.get(1);
 
         assertThat(teamA.get(team.name)).isEqualTo("teamA");
         assertThat(teamA.get(member.age.avg())).isEqualTo(15); // (10 + 20) / 2
@@ -260,7 +261,6 @@ public class QuerydslBasicTest {
 
     /*
     세타 조인 (연관관계가 없는 필드로 조인) -> cross join
-    회원의 이름이 팀 이름과 같은 회원 조회
      */
     @Test
     void theta_join() {
@@ -268,9 +268,10 @@ public class QuerydslBasicTest {
         em.persist(new Member("teamB"));
         em.persist(new Member("teamC"));
 
+        //회원의 이름이 팀 이름과 같은 회원 조회
         List<Member> result = queryFactory
                 .select(member)
-                .from(member, team)
+                .from(member, team) //cross join 발생
                 .where(member.username.eq(team.name))
                 .fetch();
 
@@ -281,32 +282,43 @@ public class QuerydslBasicTest {
 
     /*
     예) 회원과 팀을 조인하면서, 팀 이름이 teamA 인 팀만 조인, 회원은 모두 조회
-    JPQL : select m, t from Member m left join m.team t on t.name = 'teamA'
-    SQL : SELECT m.*, t.* FROM Member m LEFT JOIN Team t ON m.TEAM_ID = t.id and t.name = 'teamA'
+    JPQL : select m, t from Member m left (outer) join m.team t on t.name = 'teamA'
+    SQL : SELECT m.*, t.* FROM Member m LEFT (OUTER) JOIN Team t ON m.TEAM_ID = t.id and t.name = 'teamA'
 
     <ON 과 WHERE 차이>
-    ON : JOIN 을 하기 전 필터링을 한다 (= ON 조건으로 필터링이 된 레코들간 JOIN 이 이뤄진다) -> null 허용
+    ON : JOIN 을 하기 전 필터링을 한다 (= ON 조건으로 필터링이 된 레코드 간 JOIN 이 이뤄진다) -> null 허용
     WHERE : JOIN 을 한 후 필터링을 한다 (= JOIN 을 한 결과에서 WHERE 조건절로 필터링이 이뤄진다) -> null 걸러짐
      */
     @Test
     void join_on_filtering() {
-        List<Tuple> result = queryFactory
+        //outer join
+        List<Tuple> result1 = queryFactory
                 .select(member, team)
                 .from(member)
                 .leftJoin(member.team, team)
                 .on(team.name.eq("teamA"))
-//                .where(team.name.eq("teamA"))
+                .fetch();
+
+        //inner join
+        List<Tuple> result2 = queryFactory
+                .select(member, team)
+                .from(member)
+                .join(member.team, team)
+                .where(team.name.eq("teamA"))
                 .fetch();
 
         //inner join 이면 where 절을 활용하고, 정말 outer join 이 필요한 경우에만 on 절을 사용하자!!
-        for (Tuple tuple : result) {
+        for (Tuple tuple : result1) {
+            System.out.println("tuple = " + tuple);
+        }
+
+        for (Tuple tuple : result2) {
             System.out.println("tuple = " + tuple);
         }
     }
 
     /*
     연관관계가 없는 엔티티 외부 조인
-    회원의 이름이 팀 이름과 같은 대상 외부 조인
      */
     @Test
     void join_on_no_relation() {
@@ -314,6 +326,8 @@ public class QuerydslBasicTest {
         em.persist(new Member("teamB"));
         em.persist(new Member("teamC"));
 
+        //회원의 이름이 팀 이름과 같은 대상 외부 조인
+        //JPQL : select m, t from Member m left join Team t on m.username = t.name
         List<Tuple> result = queryFactory
                 .select(member, team)
                 .from(member)
@@ -373,6 +387,7 @@ public class QuerydslBasicTest {
         QMember memberSub = new QMember("memberSub");
 
         //예) 나이가 가장 많은 회원 조회
+        //JPQL : select m from Member m where m.age = (select max(m1.age) from Member m1)
         List<Member> result = queryFactory
                 .selectFrom(member)
                 .where(member.age.eq(
@@ -391,6 +406,7 @@ public class QuerydslBasicTest {
         QMember memberSub = new QMember("memberSub");
 
         //예) 나이가 평균 이상인 회원 조회
+        //JPQL : select m from Member m where m.age >= (select avg(m1.age) from Member m1)
         List<Member> result = queryFactory
                 .selectFrom(member)
                 .where(member.age.goe(
@@ -409,6 +425,7 @@ public class QuerydslBasicTest {
         QMember memberSub = new QMember("memberSub");
 
         //예) 나이가 10살보다 큰 회원 조회 (in 절 활용)
+        //JPQL : select m from Member m where m.age in (select m1.age from Member m1 where m1.age > 10) (억지 예시)
         List<Member> result = queryFactory
                 .selectFrom(member)
                 .where(member.age.in(
@@ -428,6 +445,7 @@ public class QuerydslBasicTest {
         QMember memberSub = new QMember("memberSub");
 
         //예) 회원 이름과 평균 나이 조회 (select 절 활용)
+        //JPQL : select m.username, (select avg(m1.age) from Member m1) from Member m
         List<Tuple> result = queryFactory
                 .select(member.username,
                         select(memberSub.age.avg())
