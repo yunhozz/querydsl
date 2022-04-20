@@ -683,6 +683,7 @@ public class QuerydslBasicTest {
     @Test
     void dynamicQuery_WhereParam() {
         String usernameParam = "member1";
+//        String usernameParam = null;
         Integer ageParam = 10;
 
         List<Member> result = searchMember2(usernameParam, ageParam);
