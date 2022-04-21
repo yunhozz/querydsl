@@ -655,7 +655,7 @@ public class QuerydslBasicTest {
     }
 
     /*
-    dto 생성자에 @QueryProjection 어노테이션 추가
+    dto 생성자에 @QueryProjection 어노테이션 추가 (constructor 포함)
      */
     @Test
     void findDtoByQueryProjection() {
