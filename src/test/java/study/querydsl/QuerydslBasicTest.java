@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Commit;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.dto.MemberDto;
@@ -400,7 +401,7 @@ public class QuerydslBasicTest {
         List<Member> result = queryFactory
                 .selectFrom(member)
                 .where(member.age.eq(
-                        select(memberSub.age.max())
+                        select(memberSub.age.max()) //JPAExpressions
                                 .from(memberSub)
                 ))
                 .fetch();
@@ -419,7 +420,7 @@ public class QuerydslBasicTest {
         List<Member> result = queryFactory
                 .selectFrom(member)
                 .where(member.age.goe(
-                        select(memberSub.age.avg())
+                        select(memberSub.age.avg()) //JPAExpressions
                                 .from(memberSub)
                 ))
                 .fetch();
@@ -438,7 +439,7 @@ public class QuerydslBasicTest {
         List<Member> result = queryFactory
                 .selectFrom(member)
                 .where(member.age.in(
-                        select(memberSub.age)
+                        select(memberSub.age) //JPAExpressions
                                 .from(memberSub)
                                 .where(memberSub.age.gt(10))
                 ))
@@ -457,7 +458,7 @@ public class QuerydslBasicTest {
         //JPQL : select m.username, (select avg(m1.age) from Member m1) from Member m
         List<Tuple> result = queryFactory
                 .select(member.username,
-                        select(memberSub.age.avg())
+                        select(memberSub.age.avg()) //JPAExpressions
                                 .from(memberSub))
                 .from(member)
                 .fetch();
@@ -564,12 +565,13 @@ public class QuerydslBasicTest {
     }
 
     /*
-    setter 를 통해 값 주입
+    bean : setter 를 통해 값 주입
      */
     @Test
     void findDtoBySetter() {
         List<MemberDto> result = queryFactory
-                .select(Projections.bean(MemberDto.class,
+                .select(Projections.bean(
+                        MemberDto.class,
                         member.username,
                         member.age))
                 .from(member)
@@ -581,12 +583,13 @@ public class QuerydslBasicTest {
     }
 
     /*
-    getter, setter 무시하고 필드에 바로 주입
+    fields : getter, setter 무시하고 필드에 바로 주입
      */
     @Test
     void findDtoByField() {
         List<MemberDto> result = queryFactory
-                .select(Projections.fields(MemberDto.class,
+                .select(Projections.fields(
+                        MemberDto.class,
                         member.username,
                         member.age))
                 .from(member)
@@ -598,19 +601,23 @@ public class QuerydslBasicTest {
     }
 
     /*
-    필드 명이 달라도 주입 가능
+    constructor : 필드 명이 달라도 주입 가능
      */
     @Test
     void findDtoByConstructor() {
+        //MemberDto -> username, age
         List<MemberDto> result1 = queryFactory
-                .select(Projections.constructor(MemberDto.class,
+                .select(Projections.constructor(
+                        MemberDto.class,
                         member.username,
                         member.age))
                 .from(member)
                 .fetch();
 
+        //UserDto -> name, age
         List<UserDto> result2 = queryFactory
-                .select(Projections.constructor(UserDto.class,
+                .select(Projections.constructor(
+                        UserDto.class,
                         member.username,
                         member.age))
                 .from(member)
@@ -625,12 +632,16 @@ public class QuerydslBasicTest {
         }
     }
 
+    /*
+    UserDto 로 조회 + 서브 쿼리 생성
+     */
     @Test
     void findUserDto() {
         QMember memberSub = new QMember("memberSub");
 
         List<UserDto> result = queryFactory
-                .select(Projections.constructor(UserDto.class,
+                .select(Projections.constructor(
+                        UserDto.class,
                         member.username,
                         ExpressionUtils.as( //서브쿼리 시작 + JPAExpressions
                                 select(memberSub.age.max())
@@ -720,5 +731,87 @@ public class QuerydslBasicTest {
 
     private BooleanExpression allEq(String usernameCond, Integer ageCond) {
         return usernameEq(usernameCond).and(ageEq(ageCond)); //둘중 하나라도 null 이면 NPE 발생 -> null 체크 주의!!
+    }
+
+    @Test
+    void bulkUpdate() {
+        //member1 = 10 -> DB : member1
+        //member2 = 20 -> DB : member2
+        //member3 = 30 -> DB : member3
+        //member4 = 40 -> DB : member4
+
+        queryFactory
+                .update(member)
+                .set(member.username, "비회원")
+                .where(member.age.lt(28))
+                .execute();
+
+        //벌크 연산 후엔 반드시 영속성 컨텍스트를 flush, clear 해준다!!
+//        em.flush();
+//        em.clear();
+
+        //member1 = 10 -> DB : 비회원
+        //member2 = 20 -> DB : 비회원
+        //member3 = 30 -> DB : member3
+        //member4 = 40 -> DB : member4
+
+        //DB 값을 조회 -> 같은 pk 값의 영속성 컨텍스트 존재 확인 -> 영속성 컨텍스트 값 조회
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .fetch();
+
+        for (Member member : result) {
+            System.out.println("member1 = " + member);
+        }
+    }
+
+    @Test
+    void bulkAddAndMultiply() {
+        queryFactory
+                .update(member)
+                .set(member.age, member.age.add(1)) //minus 는 없으므로 음수 추가
+                .execute();
+
+        queryFactory
+                .update(member)
+                .set(member.age, member.age.multiply(2))
+                .execute();
+    }
+
+    @Test
+    void bulkDelete() {
+        queryFactory
+                .delete(member)
+                .where(member.age.gt(18))
+                .execute();
+    }
+
+    @Test
+    void sqlFunction1() {
+        List<String> result = queryFactory
+                .select(Expressions.stringTemplate(
+                                "function('replace', {0}, {1}, {2})",
+                                member.username, "member", "M"))
+                .from(member)
+                .fetch();
+
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    @Test
+    void sqlFunction2() {
+        List<String> result = queryFactory
+                .select(member.username)
+                .from(member)
+//                .where(member.username.eq(
+//                        Expressions.stringTemplate("function('lower', {0})", member.username)))
+                .where(member.username.eq(member.username.lower()))
+                .fetch();
+
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
     }
 }
