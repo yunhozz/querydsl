@@ -660,7 +660,7 @@ public class QuerydslBasicTest {
     @Test
     void findDtoByQueryProjection() {
         List<MemberDto> result = queryFactory
-                .select(new QMemberDto(member.username, member.age))
+                .select(new QMemberDto(member.username, member.age)) //필드 타입만 맞으면 됨
                 .from(member)
                 .fetch();
 
