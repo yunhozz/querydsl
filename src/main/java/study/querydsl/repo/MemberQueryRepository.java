@@ -15,7 +15,7 @@ import static study.querydsl.entity.QMember.member;
 import static study.querydsl.entity.QTeam.team;
 
 /*
-범용성이 없고 특정 api 에만 종속되있는 경우 -> 조회용
+범용성이 없고 특정 api 에만 종속되어있는 경우 -> 조회용
  */
 @Repository
 @RequiredArgsConstructor
