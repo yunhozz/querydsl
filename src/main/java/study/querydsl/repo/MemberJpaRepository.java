@@ -134,6 +134,6 @@ public class MemberJpaRepository {
     }
 
     private BooleanExpression ageBetween(int ageLoe, int ageGoe) {
-        return ageLoe(ageLoe).and(ageGoe(ageGoe)); //null 조건 조심!
+        return ageLoe(ageLoe).and(ageGoe(ageGoe));
     }
 }

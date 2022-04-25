@@ -10,17 +10,19 @@ import study.querydsl.dto.QMemberTeamDto;
 
 import java.util.List;
 
-import static org.springframework.util.StringUtils.*;
-import static study.querydsl.entity.QMember.*;
-import static study.querydsl.entity.QTeam.*;
+import static org.springframework.util.StringUtils.hasText;
+import static study.querydsl.entity.QMember.member;
+import static study.querydsl.entity.QTeam.team;
 
+/*
+범용성이 없고 특정 api 에만 종속되있는 경우 -> 조회용
+ */
 @Repository
 @RequiredArgsConstructor
-public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
+public class MemberQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
-    @Override
     public List<MemberTeamDto> search(MemberSearchCondition condition) {
         return queryFactory
                 .select(new QMemberTeamDto(
