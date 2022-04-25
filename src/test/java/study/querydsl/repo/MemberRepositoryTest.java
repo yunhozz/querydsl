@@ -3,6 +3,8 @@ package study.querydsl.repo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.dto.MemberSearchCondition;
 import study.querydsl.dto.MemberTeamDto;
@@ -24,7 +26,7 @@ class MemberRepositoryTest {
     @Autowired MemberRepository memberRepository;
 
     @Test
-    void basicTest() {
+    void basicTest() throws Exception {
         //given
         Member member = new Member("member1", 10);
 
@@ -42,7 +44,7 @@ class MemberRepositoryTest {
     }
 
     @Test
-    void searchTest() {
+    void searchTest() throws Exception {
         //given
         Team teamA = new Team("teamA");
         Team teamB = new Team("teamB");
@@ -68,5 +70,34 @@ class MemberRepositoryTest {
 
         //then
         assertThat(result).extracting("username").containsExactly("member3", "member4");
+    }
+
+    @Test
+    void searchPageSimple() throws Exception {
+        //given
+        Team teamA = new Team("teamA");
+        Team teamB = new Team("teamB");
+        em.persist(teamA);
+        em.persist(teamB);
+
+        Member member1 = new Member(teamA, "member1", 10);
+        Member member2 = new Member(teamA, "member2", 20);
+        Member member3 = new Member(teamB, "member3", 30);
+        Member member4 = new Member(teamB, "member4", 40);
+        em.persist(member1);
+        em.persist(member2);
+        em.persist(member3);
+        em.persist(member4);
+
+        MemberSearchCondition condition = new MemberSearchCondition();
+        PageRequest pageRequest = PageRequest.of(0, 3);
+
+        //when
+        Page<MemberTeamDto> result = memberRepository.searchPageSimple(condition, pageRequest);
+
+        //then
+        assertThat(result.getSize()).isEqualTo(3);
+        assertThat(result.getContent()).extracting("username")
+                .containsExactly("member1", "member2", "member3");
     }
 }
