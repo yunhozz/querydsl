@@ -12,7 +12,6 @@ import org.springframework.stereotype.Repository;
 import study.querydsl.dto.MemberSearchCondition;
 import study.querydsl.dto.MemberTeamDto;
 import study.querydsl.dto.QMemberTeamDto;
-import study.querydsl.entity.Member;
 
 import java.util.List;
 
@@ -120,8 +119,8 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
                         ageLoe(condition.getAgeLoe())
                 );
 
-//        return new PageImpl<>(content, pageable, count);
-        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
+        return new PageImpl<>(content, pageable, count);
+//        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
     }
 
     private BooleanExpression usernameEq(String username) {
