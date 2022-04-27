@@ -24,6 +24,9 @@ public class MemberController {
         return memberJpaRepository.searchByWhere(condition);
     }
 
+    /*
+    pageable -> page, size 변수를 넘길 수 있음
+     */
     @GetMapping("/v2/members")
     public Page<MemberTeamDto> searchMemberV2(MemberSearchCondition condition, Pageable pageable) {
         return memberRepository.searchPageSimple(condition, pageable);
